@@ -1,0 +1,23 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "hubble-l7-rule"
+  namespace: kube-system
+spec:
+  endpointSelector:
+    matchLabels:
+      k8s-app: hubble-ui
+  ingress:
+  - toPorts:
+    - ports:
+      - port: '8081'
+        protocol: TCP
+      rules:
+        http:
+        - method: ".*"
+        # - method: GET
+        #   path: "/path1$"
+        # - method: PUT
+        #   path: "/path2$"
+        #   headers:
+        #   - 'X-My-Header: true'

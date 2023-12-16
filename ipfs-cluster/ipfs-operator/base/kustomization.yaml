@@ -1,0 +1,37 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # 阿 source 就打 tag 啊，能怎樣
+  - https://github.com/ipfs-cluster/ipfs-operator//config/default?ref=main
+# patches:
+#   - target:
+#       kind: ConfigMap
+#       name: kube-flannel-cfg
+#     patch: |-
+#       - op: replace
+#         path: /data/net-conf.json
+#         value: |
+#           {
+#             "Network": "10.244.0.0/16",
+#             "Backend": {
+#               "Type": "host-gw"
+#             }
+#           }
+#   - target:
+#       kind: DaemonSet
+#       name: kube-flannel-ds
+#     patch: |-
+#       apiVersion: apps/v1
+#       kind: DaemonSet
+#       metadata:
+#         name: kube-flannel-ds
+#       spec:
+#         template:
+#           spec:
+#             containers:
+#               - name: kube-flannel
+#                 resources:
+#                   limits:
+#                     cpu: 500m
+#                     memory: 50Mi

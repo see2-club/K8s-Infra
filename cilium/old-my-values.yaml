@@ -1,0 +1,372 @@
+# -- Install the cilium agent resources.
+agent: false
+
+cni:
+  # -- Install the CNI configuration and binary files into the filesystem.
+  install: false
+
+ingressController:
+  # -- Enable cilium ingress controller
+  # This will automatically set enable-envoy-config as well.
+  enabled: true
+
+  # -- Set cilium ingress controller to be the default ingress controller
+  # This will let cilium ingress controller route entries without ingress class set
+  default: true
+
+  # -- Default ingress load balancer mode
+  # Supported values: shared, dedicated
+  # For granular control, use the following annotations on the ingress resource
+  # ingress.cilium.io/loadbalancer-mode: shared|dedicated,
+  loadbalancerMode: dedicated
+
+  # -- Enforce https for host having matching TLS host in Ingress.
+  # Incoming traffic to http listener will return 308 http error code with respective location in header.
+  enforceHttps: true
+
+  # -- IngressLBAnnotations are the annotation prefixes, which are used to filter annotations to propagate
+  # from Ingress to the Load Balancer service
+  ingressLBAnnotationPrefixes: ['service.beta.kubernetes.io', 'service.kubernetes.io', 'cloud.google.com']
+
+  # -- Default secret namespace for ingresses without .spec.tls[].secretName set.
+  defaultSecretNamespace:
+
+  # -- Default secret name for ingresses without .spec.tls[].secretName set.
+  defaultSecretName:
+
+  # -- SecretsNamespace is the namespace in which envoy SDS will retrieve TLS secrets from.
+  secretsNamespace:
+    # -- Create secrets namespace for Ingress.
+    create: true
+
+    # -- Name of Ingress secret namespace.
+    name: cilium-secrets
+
+    # -- Enable secret sync, which will make sure all TLS secrets used by Ingress are synced to secretsNamespace.name.
+    # If disabled, TLS secrets must be maintained externally.
+    sync: true
+
+  # -- Load-balancer service in shared mode.
+  # This is a single load-balancer service for all Ingress resources.
+  service:
+    # -- Service name
+    name: cilium-ingress
+    # -- Labels to be added for the shared LB service
+    labels: {}
+    # -- Annotations to be added for the shared LB service
+    annotations: {}
+    # -- Service type for the shared LB service
+    type: LoadBalancer
+    # -- Configure a specific nodePort for insecure HTTP traffic on the shared LB service
+    insecureNodePort: ~
+    # -- Configure a specific nodePort for secure HTTPS traffic on the shared LB service
+    secureNodePort : ~
+    # -- Configure a specific loadBalancerClass on the shared LB service (requires Kubernetes 1.24+)
+    loadBalancerClass: ~
+    # -- Configure a specific loadBalancerIP on the shared LB service
+    loadBalancerIP : ~
+    # -- Configure if node port allocation is required for LB service
+    # ref: https://kubernetes.io/docs/concepts/services-networking/service/#load-balancer-nodeport-allocation
+    allocateLoadBalancerNodePorts: ~
+
+gatewayAPI:
+  # -- Enable support for Gateway API in cilium
+  # This will automatically set enable-envoy-config as well.
+  enabled: false
+
+  # -- SecretsNamespace is the namespace in which envoy SDS will retrieve TLS secrets from.
+  secretsNamespace:
+    # -- Create secrets namespace for Gateway API.
+    create: true
+
+    # -- Name of Gateway API secret namespace.
+    name: cilium-secrets
+
+    # -- Enable secret sync, which will make sure all TLS secrets used by Ingress are synced to secretsNamespace.name.
+    # If disabled, TLS secrets must be maintained externally.
+    sync: true
+
+eni:
+  # -- Enable Elastic Network Interface (ENI) integration.
+  enabled: false
+
+hubble:
+  # -- Enable Hubble (true by default).
+  enabled: false
+
+  # -- Hubble metrics configuration.
+  # See https://docs.cilium.io/en/stable/observability/metrics/#hubble-metrics
+  # for more comprehensive documentation about Hubble metrics.
+  metrics:
+    # -- Configures the list of metrics to collect. If empty or null, metrics
+    # are disabled.
+    # Example:
+    #
+    #   enabled:
+    #   - dns:query;ignoreAAAA
+    #   - drop
+    #   - tcp
+    #   - flow
+    #   - icmp
+    #   - http
+    #
+    # You can specify the list of metrics from the helm CLI:
+    #
+    #   --set hubble.metrics.enabled="{dns:query;ignoreAAAA,drop,tcp,flow,icmp,http}"
+    #
+    enabled: ~
+    # -- Enables exporting hubble metrics in OpenMetrics format.
+    enableOpenMetrics: false
+    # -- Configure the port the hubble metric server listens on.
+    port: 9965
+    # -- Annotations to be added to hubble-metrics service.
+    serviceAnnotations: {}
+    serviceMonitor:
+      # -- Create ServiceMonitor resources for Prometheus Operator.
+      # This requires the prometheus CRDs to be available.
+      # ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml)
+      enabled: false
+      # -- Labels to add to ServiceMonitor hubble
+      labels: {}
+      # -- Annotations to add to ServiceMonitor hubble
+      annotations: {}
+      # -- Interval for scrape metrics.
+      interval: "10s"
+      # -- Relabeling configs for the ServiceMonitor hubble
+      relabelings:
+        - sourceLabels:
+            - __meta_kubernetes_pod_node_name
+          targetLabel: node
+          replacement: ${1}
+      # -- Metrics relabeling configs for the ServiceMonitor hubble
+      metricRelabelings: ~
+    # -- Grafana dashboards for hubble
+    # grafana can import dashboards based on the label and value
+    # ref: https://github.com/grafana/helm-charts/tree/main/charts/grafana#sidecar-for-dashboards
+    dashboards:
+      enabled: false
+      label: grafana_dashboard
+      namespace: ~
+      labelValue: "1"
+      annotations: {}
+
+  redact:
+    enabled: false
+    http:
+        urlQuery: false
+    kafka:
+        apiKey: false
+
+  relay:
+    # -- Enable Hubble Relay (requires hubble.enabled=true)
+    enabled: false
+
+  ui:
+    # -- Whether to enable the Hubble UI.
+    enabled: true
+
+    standalone:
+      # -- When true, it will allow installing the Hubble UI only, without checking dependencies.
+      # It is useful if a cluster already has cilium and Hubble relay installed and you just
+      # want Hubble UI to be deployed.
+      # When installed via helm, installing UI should be done via `helm upgrade` and when installed via the cilium cli, then `cilium hubble enable --ui`
+      enabled: true
+
+      tls:
+        # -- When deploying Hubble UI in standalone, with tls enabled for Hubble relay, it is required
+        # to provide a volume for mounting the client certificates.
+        certsVolume: {}
+          # projected:
+          #   defaultMode: 0400
+          #   sources:
+          #   - secret:
+          #       name: hubble-ui-client-certs
+          #       items:
+          #       - key: tls.crt
+          #         path: client.crt
+          #       - key: tls.key
+          #         path: client.key
+          #       - key: ca.crt
+          #         path: hubble-relay-ca.crt
+
+    # -- Roll out Hubble-ui pods automatically when configmap is updated.
+    rollOutPods: false
+
+    tls:
+      # -- base64 encoded PEM values used to connect to hubble-relay
+      # This keypair is presented to Hubble Relay instances for mTLS
+      # authentication and is required when hubble.relay.tls.server.enabled is true.
+      # These values need to be set manually if hubble.tls.auto.enabled is false.
+      client:
+        cert: ""
+        key: ""
+
+      # -- Additional hubble-ui backend volumes.
+      extraVolumes: []
+
+      # -- Additional hubble-ui backend volumeMounts.
+      extraVolumeMounts: []
+
+      livenessProbe:
+        # -- Enable liveness probe for Hubble-ui backend (requires Hubble-ui 0.12+)
+        enabled: true
+
+      readinessProbe:
+        # -- Enable readiness probe for Hubble-ui backend (requires Hubble-ui 0.12+)
+        enabled: true
+
+    # -- The number of replicas of Hubble UI to deploy.
+    replicas: 1
+
+    # -- Annotations to be added to hubble-ui pods
+    podAnnotations: {}
+
+    # -- Labels to be added to hubble-ui pods
+    podLabels: {}
+
+    # -- hubble-ui service configuration.
+    service:
+      # -- Annotations to be added for the Hubble UI service
+      annotations: {}
+      # --- The type of service used for Hubble UI access, either ClusterIP or NodePort.
+      type: ClusterIP
+      # --- The port to use when the service type is set to NodePort.
+      nodePort: 31235
+
+    # -- Defines base url prefix for all hubble-ui http requests.
+    # It needs to be changed in case if ingress for hubble-ui is configured under some sub-path.
+    # Trailing `/` is required for custom path, ex. `/service-map/`
+    baseUrl: "/"
+
+    # -- hubble-ui ingress configuration.
+    ingress:
+      enabled: true
+      annotations:
+        external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+        # external-dns.alpha.kubernetes.io/hostname: example.com
+        # external-dns.alpha.kubernetes.io/ttl: "120" #optional
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+        # kubernetes.io/ingress.class: nginx
+        # kubernetes.io/tls-acme: "true"
+      className: "traefik"
+      hosts:
+        - hubble.see2.club
+      labels: {}
+      tls:
+        - secretName: hubble-ui-cert
+          hosts:
+            - hubble.see2.club
+
+# -- Enables egress gateway to redirect and SNAT the traffic that leaves the
+# cluster.
+
+egressGateway:
+  enabled: false
+  # -- Install egress gateway IP rules and routes in order to properly steer
+  # egress gateway traffic to the correct ENI interface
+  installRoutes: false
+  # -- Time between triggers of egress gateway state reconciliations
+  reconciliationTriggerInterval: 1s
+  # -- Maximum number of entries in egress gateway policy map
+  # maxPolicyEntries: 16384
+
+# -- cilium-monitor sidecar.
+monitor:
+  # -- Enable the cilium-monitor sidecar.
+  enabled: false
+
+# -- Configure prometheus metrics on the configured port at /metrics
+prometheus:
+  enabled: false
+  port: 9962
+  serviceMonitor:
+    # -- Enable service monitors.
+    # This requires the prometheus CRDs to be available (see https://github.com/prometheus-operator/prometheus-operator/blob/main/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml)
+    enabled: false
+    # -- Labels to add to ServiceMonitor cilium-agent
+    labels: {}
+    # -- Annotations to add to ServiceMonitor cilium-agent
+    annotations: {}
+    # -- Interval for scrape metrics.
+    interval: "10s"
+    # -- Specify the Kubernetes namespace where Prometheus expects to find
+    # service monitors configured.
+    # namespace: ""
+    # -- Relabeling configs for the ServiceMonitor cilium-agent
+    relabelings:
+      - sourceLabels:
+          - __meta_kubernetes_pod_node_name
+        targetLabel: node
+        replacement: ${1}
+    # -- Metrics relabeling configs for the ServiceMonitor cilium-agent
+    metricRelabelings: ~
+    # -- Set to `true` and helm will not check for monitoring.coreos.com/v1 CRDs before deploying
+    trustCRDsExist: false
+
+  # -- Metrics that should be enabled or disabled from the default metric list.
+  # The list is expected to be separated by a space. (+metric_foo to enable
+  # metric_foo , -metric_bar to disable metric_bar).
+  # ref: https://docs.cilium.io/en/stable/observability/metrics/
+  metrics: ~
+
+  # --- Enable controller group metrics for monitoring specific Cilium
+  # subsystems. The list is a list of controller group names. The special
+  # values of "all" and "none" are supported. The set of controller
+  # group names is not guaranteed to be stable between Cilium versions.
+  controllerGroupMetrics:
+    - write-cni-file
+    - sync-host-ips
+    - sync-lb-maps-with-k8s-services
+
+# -- Grafana dashboards for cilium-agent
+# grafana can import dashboards based on the label and value
+# ref: https://github.com/grafana/helm-charts/tree/main/charts/grafana#sidecar-for-dashboards
+dashboards:
+  enabled: false
+  label: grafana_dashboard
+  namespace: ~
+  labelValue: "1"
+  annotations: {}
+
+# -- Configure the encapsulation configuration for communication between nodes.
+# Possible values:
+#   - disabled
+#   - vxlan (default)
+#   - geneve
+tunnel: ""
+
+# -- Tunneling protocol to use in tunneling mode and for ad-hoc tunnels.
+# @default -- `"vxlan"`
+tunnelProtocol: ""
+
+# -- Enable native-routing mode or tunneling mode.
+# @default -- `"tunnel"`
+routingMode: ""
+
+# -- Configure VXLAN and Geneve tunnel port.
+# @default -- Port 8472 for VXLAN, Port 6081 for Geneve
+tunnelPort: 0
+
+etcd:
+  # -- Enable etcd mode for the agent.
+  enabled: false
+
+  # -- If etcd is behind a k8s service set this option to true so that Cilium
+  # does the service translation automatically without requiring a DNS to be
+  # running.
+  k8sService: false
+
+  # -- Cluster domain for cilium-etcd-operator.
+  clusterDomain: cluster.local
+
+  # -- List of etcd endpoints (not needed when using managed=true).
+  endpoints:
+    - https://CHANGE-ME:2379
+
+  # -- Enable use of TLS/SSL for connectivity to etcd. (auto-enabled if
+  # managed=true)
+  ssl: false
+
+operator:
+  # -- Enable the cilium-operator component (required).
+  enabled: false

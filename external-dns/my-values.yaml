@@ -1,0 +1,141 @@
+# Annotations to add to the Deployment
+deploymentAnnotations: {}
+
+podLabels: {}
+
+# Annotations to add to the Pod
+podAnnotations: {}
+
+shareProcessNamespace: false
+
+podSecurityContext:
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 65534
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+# Defaults to `ClusterFirst`.
+# Valid values are: `ClusterFirstWithHostNet`, `ClusterFirst`, `Default` or `None`.
+dnsPolicy:
+
+serviceMonitor:
+  enabled: false
+  # force namespace
+  # namespace: monitoring
+
+  # Fallback to the prometheus default unless specified
+  # interval: 10s
+
+  ## scheme: HTTP scheme to use for scraping. Can be used with `tlsConfig` for example if using istio mTLS.
+  # scheme: ""
+
+  ## tlsConfig: TLS configuration to use when scraping the endpoint. For example if using istio mTLS.
+  ## Of type: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#tlsconfig
+  # tlsConfig: {}
+
+  # bearerTokenFile:
+  # Fallback to the prometheus default unless specified
+  # scrapeTimeout: 30s
+
+  ## Used to pass Labels that are used by the Prometheus installed in your cluster to select Service Monitors to work with
+  ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+  additionalLabels: {}
+
+  ## Used to pass annotations that are used by the Prometheus installed in your cluster to select Service Monitors to work with
+  ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+  annotations: {}
+
+  ## Metric relabel configs to apply to samples before ingestion.
+  ## [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs)
+  metricRelabelings: []
+  # - action: keep
+  #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
+  #   sourceLabels: [__name__]
+
+  ## Relabel configs to apply to samples before ingestion.
+  ## [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config)
+  relabelings: []
+  # - sourceLabels: [__meta_kubernetes_pod_node_name]
+  #   separator: ;
+  #   regex: ^(.*)$
+  #   targetLabel: nodename
+  #   replacement: $1
+  #   action: replace
+
+  targetLabels: []
+
+env:
+  - name: CF_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: external-dns-env
+        key: CF_API_TOKEN
+
+service:
+  port: 7979
+  annotations: {}
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
+
+logLevel: info
+logFormat: text
+
+interval: 1m
+triggerLoopOnEvent: false
+
+namespaced: false
+
+sources:
+  - service
+  - ingress
+
+policy: upsert-only
+
+# Specifies the registry for storing ownership and labels.
+# Valid values are "aws-sd", "noop", "dynamodb", and "txt".
+registry: txt
+# When using a registry other than "noop", specifies a name that
+# uniquely identifies this instance of external-dns.
+txtOwnerId: ""
+# Specifies a prefix for the domain names of TXT records created by the "txt" registry. Optional. Mutually exclusive with `txtSuffix`.
+txtPrefix: ""
+# Specifies a suffix for the domain names of TXT records created by the "txt" registry. Optional. Mutually exclusive with `txtPrefix`.
+txtSuffix: ""
+
+domainFilters: []
+
+provider: cloudflare
+
+extraArgs: 
+  # - --cloudflare-proxied # (optional) enable the proxy feature of Cloudflare (DDOS protection, CDN...)
+  - --cloudflare-dns-records-per-page=5000 # (optional, throttling) configure how many DNS records to fetch per request
+  # - --interval=5m # (optional, throttling) default 1m. Cloudflare API has a global rate limit of 1,200 requests per five minutes.
+
+secretConfiguration:
+  enabled: false
+  mountPath: ""
+  subPath: ""
+  data: {}
+    # credentials: |
+    #   [default]
+    #   aws_access_key_id = $SECRET_ACCESS_KEY
+    #   aws_secret_access_key = $SECRET_ACCESS_KEY

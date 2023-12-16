@@ -1,0 +1,18 @@
+---
+apiVersion: cluster.ipfs.io/v1alpha1
+kind: IpfsCluster
+metadata:
+  name: ipfs-cluster
+spec:
+  ipfsStorage: 2Gi
+  clusterStorage: 2Gi
+  replicas: 2
+  follows: []
+  networking:
+    # circuitRelays: 1
+    circuitRelays: 0
+    # public is a switch which defines whether this IPFSCluster will use the global IPFS network or create its own.
+    public: true
+  # reprovider:
+  #   interval: 12h
+  #   strategy: all

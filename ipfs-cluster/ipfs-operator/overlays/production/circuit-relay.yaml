@@ -1,0 +1,9 @@
+---
+apiVersion: cluster.ipfs.io/v1alpha1
+kind: CircuitRelay
+metadata:
+  name: circuitrelay
+spec:
+  swarmKeyRef:
+    keyName:
+    secretName:

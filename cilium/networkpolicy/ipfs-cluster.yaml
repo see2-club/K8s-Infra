@@ -1,0 +1,48 @@
+---
+# IPFS-CLUSTER IPFS (ipfs-operator)
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "ipfs-cluster-ipfs-cluster-ipfs-l7-rule"
+  namespace: ipfs-operator-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ipfs-cluster-ipfs-cluster
+  ingress:
+  - toPorts:
+    - ports:
+      - port: '8080' # IPFS-Gateway
+        protocol: TCP
+      # - port: '8081' # IPFS-Websocket
+      #   protocol: TCP
+      - port: '5001' # IPFS-API (Private)
+        protocol: TCP
+      # - port: '4001' # IPFS-libp2p swarm (讓對外發現的)
+      #   protocol: TCP
+      rules:
+        http:
+        - method: ".*"
+---
+# IPFS-CLUSTER CLUSTER (ipfs-operator)
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "ipfs-cluster-ipfs-cluster-cluster-l7-rule"
+  namespace: ipfs-operator-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ipfs-cluster-ipfs-cluster
+  ingress:
+  - toPorts:
+    - ports:
+      - port: '9094' # IPFS_CLUSTER-API
+        protocol: TCP
+      - port: '9095' # IPFS_CLUSTER-PROXY API
+        protocol: TCP
+      - port: '9096' # IPFS_CLUSTER-SWARM
+        protocol: UDP
+      rules:
+        http:
+        - method: ".*"
